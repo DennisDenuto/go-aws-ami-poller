@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<go-plugin id="ami" version="1">
+<about>
+    <name>AWS AMI plugin</name>
+    <version>0.0.1</version>
+    <target-go-version>14.1</target-go-version>
+    <description>Polls aws ami repository</description>
+    <vendor>
+        <name>Dennis Denuto</name>
+        <url>https://github.com/DennisDenuto/go-aws-ami-poller</url>
+    </vendor>
+    <target-os>
+	    <value>Linux</value>
+    </target-os>
+</about>
+</go-plugin>
+
