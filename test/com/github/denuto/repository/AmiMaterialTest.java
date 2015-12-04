@@ -30,8 +30,8 @@ public class AmiMaterialTest {
 
         assertThat(goPluginApiResponse.responseCode(), is(200));
         prettyPrint(goPluginApiResponse.responseBody());
-        assertExists(goPluginApiResponse.responseBody(), "$.Region.display-name");
-        assertExists(goPluginApiResponse.responseBody(), "$.Region.display-order");
+        assertExists(goPluginApiResponse.responseBody(), "$.REGION.display-name");
+        assertExists(goPluginApiResponse.responseBody(), "$.REGION.display-order");
     }
 
     @Test
@@ -40,9 +40,9 @@ public class AmiMaterialTest {
 
         assertThat(goPluginApiResponse.responseCode(), is(200));
         prettyPrint(goPluginApiResponse.responseBody());
-        assertExists(goPluginApiResponse.responseBody(), "$.PACKAGE_SPEC.display-name");
-        assertExists(goPluginApiResponse.responseBody(), "$.PACKAGE_SPEC.display-order");
-        assertJsonValue(goPluginApiResponse.responseBody(), "$.PACKAGE_SPEC.display-name", "Package Spec");
+        assertExists(goPluginApiResponse.responseBody(), "$.AMI_SPEC.display-name");
+        assertExists(goPluginApiResponse.responseBody(), "$.AMI_SPEC.display-order");
+        assertJsonValue(goPluginApiResponse.responseBody(), "$.AMI_SPEC.display-name", "AMI Spec");
     }
 
     @Test

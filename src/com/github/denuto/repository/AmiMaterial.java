@@ -72,7 +72,7 @@ public class AmiMaterial implements GoPlugin {
                 PackageMaterialProperty packageMaterialProperty = new PackageMaterialProperty();
                 packageMaterialProperty.withDisplayName("Region");
                 packageMaterialProperty.withDisplayOrder("0");
-                packageMaterialPropertyMap.put("Region", packageMaterialProperty);
+                packageMaterialPropertyMap.put("REGION", packageMaterialProperty);
                 return success(gson.toJson(packageMaterialPropertyMap));
             }
         };
@@ -84,10 +84,10 @@ public class AmiMaterial implements GoPlugin {
             public GoPluginApiResponse handle(GoPluginApiRequest request) {
                 Map<String, PackageMaterialProperty> packageMaterialPropertyMap = new HashMap<>();
                 PackageMaterialProperty packageMaterialProperty = new PackageMaterialProperty();
-                packageMaterialProperty.withDisplayName("Package Spec");
+                packageMaterialProperty.withDisplayName("AMI Spec");
                 packageMaterialProperty.withDisplayOrder("0");
 
-                packageMaterialPropertyMap.put("PACKAGE_SPEC", packageMaterialProperty);
+                packageMaterialPropertyMap.put("AMI_SPEC", packageMaterialProperty);
                 return success(gson.toJson(packageMaterialPropertyMap));
             }
         };
