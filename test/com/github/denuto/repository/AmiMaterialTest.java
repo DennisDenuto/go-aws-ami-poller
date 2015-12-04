@@ -160,7 +160,13 @@ public class AmiMaterialTest {
 
     @Test
     public void happyCaseCheckingRepositoryConnection() throws Exception {
+        DefaultGoPluginApiRequest goPluginApiRequest = new DefaultGoPluginApiRequest("package-repository", "1.0", "check-repository-connection");
+        goPluginApiRequest.setRequestBody("{\"repository-configuration\":{\"REGION\":{\"value\":\"us-east-1\"}}}");
 
+        GoPluginApiResponse goPluginApiResponse = amiMaterial.handle(goPluginApiRequest);
+        assertThat(goPluginApiResponse.responseCode(), is(200));
+        assertExists(goPluginApiResponse.responseBody(), "$.status");
+        assertExists(goPluginApiResponse.responseBody(), "$.messages");
     }
 
     private String buildLongString(int size) {

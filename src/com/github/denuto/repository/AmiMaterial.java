@@ -1,5 +1,9 @@
 package com.github.denuto.repository;
 
+import com.amazonaws.regions.Regions;
+import com.amazonaws.services.ec2.AmazonEC2Client;
+import com.amazonaws.services.ec2.model.DescribeImagesRequest;
+import com.amazonaws.services.ec2.model.DryRunResult;
 import com.github.denuto.repository.models.PackageMaterialProperty;
 import com.github.denuto.repository.models.ValidatePackageConfigurationMessage;
 import com.github.denuto.repository.models.ValidateRepositoryConfigurationMessage;
@@ -154,7 +158,26 @@ public class AmiMaterial implements GoPlugin {
         return new MessageHandler() {
             @Override
             public GoPluginApiResponse handle(GoPluginApiRequest request) {
-                return success("");
+                ValidateRepositoryConfigurationMessage validateRepositoryConfigurationMessage = gson.fromJson(request.requestBody(), ValidateRepositoryConfigurationMessage.class);
+
+                AmazonEC2Client amazonEC2Client = new AmazonEC2Client();
+                amazonEC2Client.withRegion(Regions.fromName(validateRepositoryConfigurationMessage.getRepositoryConfiguration().getProperty("REGION").value()));
+                DryRunResult<DescribeImagesRequest> describeImagesRequestDryRunResult = amazonEC2Client.dryRun(new DescribeImagesRequest());
+
+                if (describeImagesRequestDryRunResult.isSuccessful()) {
+                    return success("{\n" +
+                            "    \"status\": \"success\",\n" +
+                            "    \"messages\": [\n" +
+                            "        \"Successfully connected to region\"\n" +
+                            "    ]\n" +
+                            "}");
+                }
+                return success("{\n" +
+                        "    \"status\": \"failure\",\n" +
+                        "    \"messages\": [\n" +
+                        "        \"" + describeImagesRequestDryRunResult.getMessage() + "\"\n" +
+                        "    ]\n" +
+                        "}");
             }
         };
     }
