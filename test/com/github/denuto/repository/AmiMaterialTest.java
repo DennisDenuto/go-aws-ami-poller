@@ -44,6 +44,17 @@ public class AmiMaterialTest {
         assertJsonValue(goPluginApiResponse.responseBody(), "$.PACKAGE_SPEC.display-name", "Package Spec");
     }
 
+    @Test
+    public void happyCaseGeneratingValidateRepositoryConfiguration() throws Exception {
+        DefaultGoPluginApiRequest goPluginApiRequest = new DefaultGoPluginApiRequest("package-repository", "1.0", "validate-repository-configuration");
+        goPluginApiRequest.setRequestBody("{\"repository-configuration\":{\"REGION\":{\"value\":\"us-east-99\"}}}");
+
+        GoPluginApiResponse goPluginApiResponse = amiMaterial.handle(goPluginApiRequest);
+
+        assertThat(goPluginApiResponse.responseCode(), is(200));
+        assertThat(goPluginApiResponse.responseBody(), is(""));
+    }
+
     private <T> void assertJsonValue(String json, String jsonPath, T value) {
         assertThat(JsonPath.compile(jsonPath).<T>read(json), is(value));
     }

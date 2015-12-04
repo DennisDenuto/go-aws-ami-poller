@@ -80,5 +80,15 @@ public class PackageMaterialProperty {
         return displayOrder;
     }
 
-
+    @Override
+    public String toString() {
+        return "PackageMaterialProperty{" +
+                "value='" + value + '\'' +
+                ", secure=" + secure +
+                ", partOfIdentity=" + partOfIdentity +
+                ", required=" + required +
+                ", displayName='" + displayName + '\'' +
+                ", displayOrder='" + displayOrder + '\'' +
+                '}';
+    }
 }

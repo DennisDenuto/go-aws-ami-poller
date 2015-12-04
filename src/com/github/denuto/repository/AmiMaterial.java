@@ -1,6 +1,8 @@
 package com.github.denuto.repository;
 
+import com.github.denuto.repository.models.PackageMaterialProperties;
 import com.github.denuto.repository.models.PackageMaterialProperty;
+import com.github.denuto.repository.models.ValidateRepositoryConfigurationMessage;
 import com.google.gson.Gson;
 import com.thoughtworks.go.plugin.api.GoApplicationAccessor;
 import com.thoughtworks.go.plugin.api.GoPlugin;
@@ -29,17 +31,20 @@ public class AmiMaterial implements GoPlugin {
 
     @Override
     public GoPluginApiResponse handle(GoPluginApiRequest goPluginApiRequest) throws UnhandledRequestTypeException {
-        logger.error("request name :" + goPluginApiRequest.requestName());
-        logger.error(goPluginApiRequest.requestBody());
-        logger.error(goPluginApiRequest.extension());
-        logger.error(goPluginApiRequest.requestHeaders().toString());
-        logger.error(goPluginApiRequest.requestParameters().toString());
-        logger.error("----------------------------------------");
+        String requestName = goPluginApiRequest.requestName();
+        logger.info("request name :" + requestName);
+        logger.info(goPluginApiRequest.requestBody());
+        logger.info(goPluginApiRequest.extension());
+        logger.info(goPluginApiRequest.requestHeaders().toString());
+        logger.info(goPluginApiRequest.requestParameters().toString());
+        logger.info("----------------------------------------");
 
-        if (goPluginApiRequest.requestName().equals("repository-configuration")) {
+        if (requestName.equals("repository-configuration")) {
             return repositoryConfigurationsMessageHandler().handle(goPluginApiRequest);
-        } else if (goPluginApiRequest.requestName().equals("package-configuration")) {
+        } else if (requestName.equals("package-configuration")) {
             return packageConfiguration().handle(goPluginApiRequest);
+        } else if (requestName.equals("validate-repository-configuration")) {
+            return validateRepositoryConfiguration().handle(goPluginApiRequest);
         }
         return badRequest("unknown for now");
     }
@@ -74,6 +79,17 @@ public class AmiMaterial implements GoPlugin {
         };
     }
 
+    private MessageHandler validateRepositoryConfiguration() {
+        return new MessageHandler() {
+            @Override
+            public GoPluginApiResponse handle(GoPluginApiRequest request) {
+                ValidateRepositoryConfigurationMessage validateRepositoryConfigurationMessage = gson.fromJson(request.requestBody(), ValidateRepositoryConfigurationMessage.class);
+                PackageMaterialProperty region = validateRepositoryConfigurationMessage.getRepositoryConfiguration().getProperty("REGION");
+
+                return success("");
+            }
+        };
+    }
 
     @Override
     public GoPluginIdentifier pluginIdentifier() {
