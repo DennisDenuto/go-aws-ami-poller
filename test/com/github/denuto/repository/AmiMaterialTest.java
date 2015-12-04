@@ -12,6 +12,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
 
 public class AmiMaterialTest {
@@ -47,12 +48,36 @@ public class AmiMaterialTest {
     @Test
     public void happyCaseGeneratingValidateRepositoryConfiguration() throws Exception {
         DefaultGoPluginApiRequest goPluginApiRequest = new DefaultGoPluginApiRequest("package-repository", "1.0", "validate-repository-configuration");
-        goPluginApiRequest.setRequestBody("{\"repository-configuration\":{\"REGION\":{\"value\":\"us-east-99\"}}}");
+        goPluginApiRequest.setRequestBody("{\"repository-configuration\":{\"REGION\":{\"value\":\"us-east-1\"}}}");
 
         GoPluginApiResponse goPluginApiResponse = amiMaterial.handle(goPluginApiRequest);
 
         assertThat(goPluginApiResponse.responseCode(), is(200));
         assertThat(goPluginApiResponse.responseBody(), is(""));
+    }
+
+    @Test
+    public void shouldGenerateAnErrorIfRegionSpecifiedIsNotAValidAWSRegion() throws Exception {
+        DefaultGoPluginApiRequest goPluginApiRequest = new DefaultGoPluginApiRequest("package-repository", "1.0", "validate-repository-configuration");
+        goPluginApiRequest.setRequestBody("{\"repository-configuration\":{\"REGION\":{\"value\":\"us-east-9\"}}}");
+
+        GoPluginApiResponse goPluginApiResponse = amiMaterial.handle(goPluginApiRequest);
+
+        assertThat(goPluginApiResponse.responseCode(), is(200));
+        assertJsonValue(goPluginApiResponse.responseBody(), "$[0].key", "REGION");
+        assertJsonValue(goPluginApiResponse.responseBody(), "$[0].message", "Invalid AWS REGION found: us-east-9");
+    }
+
+    @Test
+    public void shouldGenerateErrorIfRegionIsNotSpecifiedAtAll() throws Exception {
+        DefaultGoPluginApiRequest goPluginApiRequest = new DefaultGoPluginApiRequest("package-repository", "1.0", "validate-repository-configuration");
+        goPluginApiRequest.setRequestBody("{\"repository-configuration\":{}}");
+
+        GoPluginApiResponse goPluginApiResponse = amiMaterial.handle(goPluginApiRequest);
+
+        assertThat(goPluginApiResponse.responseCode(), is(200));
+        assertJsonValue(goPluginApiResponse.responseBody(), "$[0].key", "REGION");
+        assertJsonValue(goPluginApiResponse.responseBody(), "$[0].message", "Region is required");
     }
 
     private <T> void assertJsonValue(String json, String jsonPath, T value) {

@@ -1,6 +1,5 @@
 package com.github.denuto.repository;
 
-import com.github.denuto.repository.models.PackageMaterialProperties;
 import com.github.denuto.repository.models.PackageMaterialProperty;
 import com.github.denuto.repository.models.ValidateRepositoryConfigurationMessage;
 import com.google.gson.Gson;
@@ -15,15 +14,30 @@ import com.thoughtworks.go.plugin.api.response.GoPluginApiResponse;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import static com.thoughtworks.go.plugin.api.response.DefaultGoPluginApiResponse.badRequest;
 import static com.thoughtworks.go.plugin.api.response.DefaultGoPluginApiResponse.success;
+import static java.lang.String.format;
 
 @Extension
 public class AmiMaterial implements GoPlugin {
+    public static final String VALIDATE_REPO_CONFIG_INVALID_REGION_MSG = "[{ \"key\": \"REGION\", \"message\" : \"Invalid AWS REGION found: %s\"}]";
+    public static final String VALIDATE_REPO_CONFIG_MISSING_REGION_KEY_MSG = "[{ \"key\": \"REGION\", \"message\" : \"Region is required\"}]";
     Logger logger = Logger.getLoggerFor(AmiMaterial.class);
     private Gson gson = new Gson();
+    public static final List<String> REGIONS = new ArrayList<String>() {{
+        add("eu-west-1");
+        add("ap-southeast-1");
+        add("ap-southeast-2");
+        add("eu-central-1");
+        add("ap-northeast-1");
+        add("us-east-1");
+        add("sa-east-1");
+        add("us-west-1");
+        add("us-west-2");
+    }};
 
     @Override
     public void initializeGoApplicationAccessor(GoApplicationAccessor goApplicationAccessor) {
@@ -84,9 +98,16 @@ public class AmiMaterial implements GoPlugin {
             @Override
             public GoPluginApiResponse handle(GoPluginApiRequest request) {
                 ValidateRepositoryConfigurationMessage validateRepositoryConfigurationMessage = gson.fromJson(request.requestBody(), ValidateRepositoryConfigurationMessage.class);
-                PackageMaterialProperty region = validateRepositoryConfigurationMessage.getRepositoryConfiguration().getProperty("REGION");
+                PackageMaterialProperty regionMaterialProperty = validateRepositoryConfigurationMessage.getRepositoryConfiguration().getProperty("REGION");
 
-                return success("");
+                if (regionMaterialProperty != null) {
+                    String region = regionMaterialProperty.value();
+                    if (REGIONS.contains(region)) {
+                        return success("");
+                    }
+                    return success(format(VALIDATE_REPO_CONFIG_INVALID_REGION_MSG, region));
+                }
+                return success(VALIDATE_REPO_CONFIG_MISSING_REGION_KEY_MSG);
             }
         };
     }
