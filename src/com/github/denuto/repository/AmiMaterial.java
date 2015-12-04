@@ -26,6 +26,8 @@ import static java.lang.String.format;
 public class AmiMaterial implements GoPlugin {
     public static final String VALIDATE_REPO_CONFIG_INVALID_REGION_MSG = "[{ \"key\": \"REGION\", \"message\" : \"Invalid AWS REGION found: %s\"}]";
     public static final String VALIDATE_REPO_CONFIG_MISSING_REGION_KEY_MSG = "[{ \"key\": \"REGION\", \"message\" : \"Region is required\"}]";
+    public static final String VALIDATE_PACKAGE_CONFIG_INVALID_AMI_NAME_MSG = "[{ \"key\": \"AMI_SPEC\", \"message\" : \"AMI spec specified is invalid (must be between 3 and 128 characters long)\"}]";
+    public static final String VALIDATE_PACKAGE_CONFIG_INVALID_ARCH_VALUE = "[{ \"key\": \"ARCH\", \"message\" : \"Architecture value incorrect. (i386 | x86_64)\"}]";
     Logger logger = Logger.getLoggerFor(AmiMaterial.class);
     private Gson gson = new Gson();
     public static final List<String> REGIONS = new ArrayList<String>() {{
@@ -129,9 +131,12 @@ public class AmiMaterial implements GoPlugin {
             public GoPluginApiResponse handle(GoPluginApiRequest request) {
                 ValidatePackageConfigurationMessage validatePackageConfigurationMessage = gson.fromJson(request.requestBody(), ValidatePackageConfigurationMessage.class);
                 PackageMaterialProperty amiSpec = validatePackageConfigurationMessage.getPackageConfiguration().getProperty("AMI_SPEC");
+                PackageMaterialProperty arch = validatePackageConfigurationMessage.getPackageConfiguration().getProperty("ARCH");
 
                 if (amiSpec.value().length() <= 3 || amiSpec.value().length() >= 128) {
-                    return success("[{ \"key\": \"AMI_SPEC\", \"message\" : \"AMI spec specified is invalid (must be between 3 and 128 characters long)\"}]");
+                    return success(VALIDATE_PACKAGE_CONFIG_INVALID_AMI_NAME_MSG);
+                } else if (arch != null && !arch.value().equals("i386") && !arch.value().equals("x86_64")) {
+                    return success(VALIDATE_PACKAGE_CONFIG_INVALID_ARCH_VALUE);
                 }
 
                 return success("");
