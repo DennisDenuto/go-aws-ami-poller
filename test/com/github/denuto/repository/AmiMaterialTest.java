@@ -12,7 +12,6 @@ import org.junit.Before;
 import org.junit.Test;
 
 import static org.hamcrest.CoreMatchers.is;
-import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
 
 public class AmiMaterialTest {
@@ -39,10 +38,32 @@ public class AmiMaterialTest {
         GoPluginApiResponse goPluginApiResponse = amiMaterial.handle(new DefaultGoPluginApiRequest("package-repository", "1.0", "package-configuration"));
 
         assertThat(goPluginApiResponse.responseCode(), is(200));
+
         prettyPrint(goPluginApiResponse.responseBody());
         assertExists(goPluginApiResponse.responseBody(), "$.AMI_SPEC.display-name");
         assertExists(goPluginApiResponse.responseBody(), "$.AMI_SPEC.display-order");
-        assertJsonValue(goPluginApiResponse.responseBody(), "$.AMI_SPEC.display-name", "AMI Spec");
+        assertExists(goPluginApiResponse.responseBody(), "$.AMI_SPEC.required");
+        assertJsonValue(goPluginApiResponse.responseBody(), "$.AMI_SPEC.display-name", "AMI name spec");
+        assertJsonValue(goPluginApiResponse.responseBody(), "$.AMI_SPEC.display-order", "0");
+        assertJsonValue(goPluginApiResponse.responseBody(), "$.AMI_SPEC.required", true);
+
+        assertExists(goPluginApiResponse.responseBody(), "$.ARCH.display-name");
+        assertExists(goPluginApiResponse.responseBody(), "$.ARCH.display-order");
+        assertJsonValue(goPluginApiResponse.responseBody(), "$.ARCH.display-name", "Architecture (i386 | x86_64)");
+        assertJsonValue(goPluginApiResponse.responseBody(), "$.ARCH.display-order", "1");
+        assertJsonValue(goPluginApiResponse.responseBody(), "$.ARCH.required", false);
+
+        assertExists(goPluginApiResponse.responseBody(), "$.TAG_KEY.display-name");
+        assertExists(goPluginApiResponse.responseBody(), "$.TAG_KEY.display-order");
+        assertJsonValue(goPluginApiResponse.responseBody(), "$.TAG_KEY.display-name", "The key of a tag assigned to the resource. This filter is independent of the tag-value filter.");
+        assertJsonValue(goPluginApiResponse.responseBody(), "$.TAG_KEY.display-order", "2");
+        assertJsonValue(goPluginApiResponse.responseBody(), "$.TAG_KEY.required", false);
+
+        assertExists(goPluginApiResponse.responseBody(), "$.TAG_VALUE.display-name");
+        assertExists(goPluginApiResponse.responseBody(), "$.TAG_VALUE.display-order");
+        assertJsonValue(goPluginApiResponse.responseBody(), "$.TAG_VALUE.display-name", "The value of a tag assigned to the resource. This filter is independent of the tag-key filter.");
+        assertJsonValue(goPluginApiResponse.responseBody(), "$.TAG_VALUE.display-order", "3");
+        assertJsonValue(goPluginApiResponse.responseBody(), "$.TAG_VALUE.required", false);
     }
 
     @Test

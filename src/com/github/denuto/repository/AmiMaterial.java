@@ -86,12 +86,20 @@ public class AmiMaterial implements GoPlugin {
             @Override
             public GoPluginApiResponse handle(GoPluginApiRequest request) {
                 Map<String, PackageMaterialProperty> packageMaterialPropertyMap = new HashMap<>();
-                PackageMaterialProperty packageMaterialProperty = new PackageMaterialProperty();
-                packageMaterialProperty.withDisplayName("AMI Spec");
-                packageMaterialProperty.withDisplayOrder("0");
-
-                packageMaterialPropertyMap.put("AMI_SPEC", packageMaterialProperty);
+                addPackageMaterialProperty(packageMaterialPropertyMap, "AMI name spec", "0", true, "AMI_SPEC");
+                addPackageMaterialProperty(packageMaterialPropertyMap, "Architecture (i386 | x86_64)", "1", false, "ARCH");
+                addPackageMaterialProperty(packageMaterialPropertyMap, "The key of a tag assigned to the resource. This filter is independent of the tag-value filter.", "2", false, "TAG_KEY");
+                addPackageMaterialProperty(packageMaterialPropertyMap, "The value of a tag assigned to the resource. This filter is independent of the tag-key filter.", "3", false, "TAG_VALUE");
                 return success(gson.toJson(packageMaterialPropertyMap));
+            }
+
+            private void addPackageMaterialProperty(Map<String, PackageMaterialProperty> packageMaterialPropertyMap, String displayName, String displayOrder, boolean required, String key) {
+                PackageMaterialProperty packageMaterialProperty = new PackageMaterialProperty();
+                packageMaterialProperty.withDisplayName(displayName);
+                packageMaterialProperty.withDisplayOrder(displayOrder);
+                packageMaterialProperty.withRequired(required);
+
+                packageMaterialPropertyMap.put(key, packageMaterialProperty);
             }
         };
     }
