@@ -26,9 +26,9 @@ public class AmiMaterialTest {
     @Test
     public void happyCaseGeneratingRepositoryConfiguration() throws Exception {
         GoPluginApiResponse goPluginApiResponse = amiMaterial.handle(new DefaultGoPluginApiRequest("package-repository", "1.0", "repository-configuration"));
+
         assertThat(goPluginApiResponse.responseCode(), is(200));
         prettyPrint(goPluginApiResponse.responseBody());
-
         assertExists(goPluginApiResponse.responseBody(), "$.Region.display-name");
         assertExists(goPluginApiResponse.responseBody(), "$.Region.display-order");
     }
@@ -39,10 +39,8 @@ public class AmiMaterialTest {
 
         assertThat(goPluginApiResponse.responseCode(), is(200));
         prettyPrint(goPluginApiResponse.responseBody());
-
         assertExists(goPluginApiResponse.responseBody(), "$.PACKAGE_SPEC.display-name");
         assertExists(goPluginApiResponse.responseBody(), "$.PACKAGE_SPEC.display-order");
-
         assertJsonValue(goPluginApiResponse.responseBody(), "$.PACKAGE_SPEC.display-name", "Package Spec");
     }
 
