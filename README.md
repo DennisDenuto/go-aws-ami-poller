@@ -1,0 +1,2 @@
+The default logging level for the plugin is set to INFO.
+User can override default value by setting system property 'plugin.pluginId_placeholder.log.level' to required logging level. For example, to set the logging level to WARN for plugin with id 'yum-poller', system property 'plugin.yum-poller.log.level' should be set to WARN.
