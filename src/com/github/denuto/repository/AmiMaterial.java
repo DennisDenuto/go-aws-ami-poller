@@ -49,24 +49,30 @@ public class AmiMaterial implements GoPlugin {
     @Override
     public GoPluginApiResponse handle(GoPluginApiRequest goPluginApiRequest) throws UnhandledRequestTypeException {
         String requestName = goPluginApiRequest.requestName();
-        logger.info("request name :" + requestName);
-        logger.info(goPluginApiRequest.requestBody());
-        logger.info(goPluginApiRequest.extension());
-        logger.info(goPluginApiRequest.requestHeaders().toString());
-        logger.info(goPluginApiRequest.requestParameters().toString());
-        logger.info("----------------------------------------");
 
-        if (requestName.equals("repository-configuration")) {
-            return repositoryConfigurationsMessageHandler().handle(goPluginApiRequest);
-        } else if (requestName.equals("package-configuration")) {
-            return packageConfiguration().handle(goPluginApiRequest);
-        } else if (requestName.equals("validate-repository-configuration")) {
-            return validateRepositoryConfiguration().handle(goPluginApiRequest);
-        } else if (requestName.equals("validate-package-configuration")) {
-            return validatePackageConfiguration().handle(goPluginApiRequest);
+        switch (requestName) {
+            case "repository-configuration":
+                return repositoryConfigurationsMessageHandler().handle(goPluginApiRequest);
+            case "package-configuration":
+                return packageConfiguration().handle(goPluginApiRequest);
+            case "validate-repository-configuration":
+                return validateRepositoryConfiguration().handle(goPluginApiRequest);
+            case "validate-package-configuration":
+                return validatePackageConfiguration().handle(goPluginApiRequest);
+            case "check-repository-connection":
+                return checkRepositoryConnection().handle(goPluginApiRequest);
+            default:
+                logger.error("request name :" + requestName);
+                logger.error(goPluginApiRequest.requestBody());
+                logger.error(goPluginApiRequest.extension());
+                logger.error(goPluginApiRequest.requestHeaders().toString());
+                logger.error(goPluginApiRequest.requestParameters().toString());
+                logger.error("-------------------------------------------");
+
+                return badRequest("unknown for now");
         }
-        return badRequest("unknown for now");
     }
+
 
     private MessageHandler repositoryConfigurationsMessageHandler() {
         return new MessageHandler() {
@@ -139,6 +145,15 @@ public class AmiMaterial implements GoPlugin {
                     return success(VALIDATE_PACKAGE_CONFIG_INVALID_ARCH_VALUE);
                 }
 
+                return success("");
+            }
+        };
+    }
+
+    private MessageHandler checkRepositoryConnection() {
+        return new MessageHandler() {
+            @Override
+            public GoPluginApiResponse handle(GoPluginApiRequest request) {
                 return success("");
             }
         };

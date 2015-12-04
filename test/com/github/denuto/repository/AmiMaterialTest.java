@@ -158,6 +158,11 @@ public class AmiMaterialTest {
         assertJsonValue(goPluginApiResponse.responseBody(), "$[0].message", "Architecture value incorrect. (i386 | x86_64)");
     }
 
+    @Test
+    public void happyCaseCheckingRepositoryConnection() throws Exception {
+
+    }
+
     private String buildLongString(int size) {
         String longAmiName = "";
         for (int i = 0; i < size; i++) {
