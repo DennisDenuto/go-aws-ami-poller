@@ -80,6 +80,51 @@ public class AmiMaterialTest {
         assertJsonValue(goPluginApiResponse.responseBody(), "$[0].message", "Region is required");
     }
 
+    @Test
+    public void happyCaseGeneratingSuccessForValidatePackageConfiguration() throws Exception {
+        DefaultGoPluginApiRequest goPluginApiRequest = new DefaultGoPluginApiRequest("package-repository", "1.0", "validate-package-configuration");
+        goPluginApiRequest.setRequestBody("{\"repository-configuration\":{\"REGION\":{\"value\":\"us-east-1\"}}, \"package-configuration\":{\"AMI_SPEC\":{\"value\":\"ami-1234\"}}}");
+
+        GoPluginApiResponse goPluginApiResponse = amiMaterial.handle(goPluginApiRequest);
+
+        assertThat(goPluginApiResponse.responseCode(), is(200));
+        assertThat(goPluginApiResponse.responseBody(), is(""));
+    }
+
+    @Test
+    public void shouldGenerateErrorIfPackageConfigurationContainsInvalidAmiNameDueToBeingTooShort() throws Exception {
+        DefaultGoPluginApiRequest goPluginApiRequest = new DefaultGoPluginApiRequest("package-repository", "1.0", "validate-package-configuration");
+        goPluginApiRequest.setRequestBody("{\"repository-configuration\":{\"REGION\":{\"value\":\"us-east-1\"}}, \"package-configuration\":{\"AMI_SPEC\":{\"value\":\"a\"}}}");
+
+        GoPluginApiResponse goPluginApiResponse = amiMaterial.handle(goPluginApiRequest);
+
+        assertThat(goPluginApiResponse.responseCode(), is(200));
+        assertJsonValue(goPluginApiResponse.responseBody(), "$[0].key", "AMI_SPEC");
+        assertJsonValue(goPluginApiResponse.responseBody(), "$[0].message", "AMI spec specified is invalid (must be between 3 and 128 characters long)");
+    }
+
+    @Test
+    public void shouldGenerateErrorIfPackageConfigurationContainsInvalidAmiNameDueToHavingTooManyCharacters() throws Exception {
+        DefaultGoPluginApiRequest goPluginApiRequest = new DefaultGoPluginApiRequest("package-repository", "1.0", "validate-package-configuration");
+
+        String longAmiName = buildLongString(130);
+        goPluginApiRequest.setRequestBody("{\"repository-configuration\":{\"REGION\":{\"value\":\"us-east-1\"}}, \"package-configuration\":{\"AMI_SPEC\":{\"value\":\"" + longAmiName + "\"}}}");
+
+        GoPluginApiResponse goPluginApiResponse = amiMaterial.handle(goPluginApiRequest);
+
+        assertThat(goPluginApiResponse.responseCode(), is(200));
+        assertJsonValue(goPluginApiResponse.responseBody(), "$[0].key", "AMI_SPEC");
+        assertJsonValue(goPluginApiResponse.responseBody(), "$[0].message", "AMI spec specified is invalid (must be between 3 and 128 characters long)");
+    }
+
+    private String buildLongString(int size) {
+        String longAmiName = "";
+        for (int i = 0; i < size; i++) {
+            longAmiName += "a";
+        }
+        return longAmiName;
+    }
+
     private <T> void assertJsonValue(String json, String jsonPath, T value) {
         assertThat(JsonPath.compile(jsonPath).<T>read(json), is(value));
     }

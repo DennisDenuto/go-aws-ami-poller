@@ -1,6 +1,7 @@
 package com.github.denuto.repository;
 
 import com.github.denuto.repository.models.PackageMaterialProperty;
+import com.github.denuto.repository.models.ValidatePackageConfigurationMessage;
 import com.github.denuto.repository.models.ValidateRepositoryConfigurationMessage;
 import com.google.gson.Gson;
 import com.thoughtworks.go.plugin.api.GoApplicationAccessor;
@@ -59,6 +60,8 @@ public class AmiMaterial implements GoPlugin {
             return packageConfiguration().handle(goPluginApiRequest);
         } else if (requestName.equals("validate-repository-configuration")) {
             return validateRepositoryConfiguration().handle(goPluginApiRequest);
+        } else if (requestName.equals("validate-package-configuration")) {
+            return validatePackageConfiguration().handle(goPluginApiRequest);
         }
         return badRequest("unknown for now");
     }
@@ -108,6 +111,22 @@ public class AmiMaterial implements GoPlugin {
                     return success(format(VALIDATE_REPO_CONFIG_INVALID_REGION_MSG, region));
                 }
                 return success(VALIDATE_REPO_CONFIG_MISSING_REGION_KEY_MSG);
+            }
+        };
+    }
+
+    private MessageHandler validatePackageConfiguration() {
+        return new MessageHandler() {
+            @Override
+            public GoPluginApiResponse handle(GoPluginApiRequest request) {
+                ValidatePackageConfigurationMessage validatePackageConfigurationMessage = gson.fromJson(request.requestBody(), ValidatePackageConfigurationMessage.class);
+                PackageMaterialProperty amiSpec = validatePackageConfigurationMessage.getPackageConfiguration().getProperty("AMI_SPEC");
+
+                if (amiSpec.value().length() <= 3 || amiSpec.value().length() >= 128) {
+                    return success("[{ \"key\": \"AMI_SPEC\", \"message\" : \"AMI spec specified is invalid (must be between 3 and 128 characters long)\"}]");
+                }
+
+                return success("");
             }
         };
     }
