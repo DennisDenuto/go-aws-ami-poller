@@ -157,7 +157,6 @@ public class AmiMaterial implements GoPlugin {
         };
     }
 
-
     private MessageHandler validatePackageConfiguration() {
         return new MessageHandler() {
             @Override
@@ -221,6 +220,7 @@ public class AmiMaterial implements GoPlugin {
                             "}");
                 }
 
+                logger.error("describe image request: " + describeImagesRequest.toString());
                 return success("{\n" +
                         "    \"status\": \"failure\",\n" +
                         "    \"messages\": [\n" +
@@ -241,7 +241,8 @@ public class AmiMaterial implements GoPlugin {
                 AmazonEC2Client amazonEC2Client = AmazonEC2ClientFactory.newInstance(validatePackageConfigurationMessage.getRepositoryConfiguration().getProperty("REGION").value());
 
                 List<Image> images = amazonEC2Client.describeImages(buildDescribeImageRequestFromPackageConfiguration(validatePackageConfigurationMessage.getPackageConfiguration())).getImages();
-                images.sort(IMAGE_DESC_DATE_ORDER_COMPARATOR);
+
+                Collections.sort(images, IMAGE_DESC_DATE_ORDER_COMPARATOR);
 
                 Image latestImage = Iterables.getFirst(images, null);
                 if (latestImage != null) {
@@ -269,8 +270,7 @@ public class AmiMaterial implements GoPlugin {
                 AmazonEC2Client amazonEC2Client = AmazonEC2ClientFactory.newInstance(latestRevisionSinceMessage.getRepositoryConfiguration().getProperty("REGION").value());
 
                 List<Image> images = amazonEC2Client.describeImages(buildDescribeImageRequestFromPackageConfiguration(latestRevisionSinceMessage.getPackageConfiguration())).getImages();
-                images.sort(IMAGE_ASC_DATE_ORDER_COMPARATOR);
-
+                Collections.sort(images, IMAGE_ASC_DATE_ORDER_COMPARATOR);
 
                 Image latestImage = Iterables.getFirst(
                         filter(images, new Predicate<Image>() {
@@ -312,7 +312,7 @@ public class AmiMaterial implements GoPlugin {
     }
 
     private void addPackageConfigToEC2Filter(List<Filter> filters, PackageMaterialProperty packageMaterialProperty, String filterKey) {
-        if (packageMaterialProperty != null) {
+        if (packageMaterialProperty != null && !packageMaterialProperty.value().isEmpty()) {
             filters.add(new Filter(filterKey, newArrayList(packageMaterialProperty.value())));
         }
     }
