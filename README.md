@@ -1,3 +1,5 @@
+[![Build Status](https://travis-ci.org/DennisDenuto/go-aws-ami-poller.svg)](https://travis-ci.org/DennisDenuto/go-aws-ami-poller)
+
 AWS AMI Poller Plugin for Go
 ==================================
 
@@ -18,7 +20,7 @@ The AWS region must be a [valid region](http://docs.aws.amazon.com/general/lates
 
 Package definition
 ------------------
-- AMI name (required) spec refers to the name assigned to the ami at creation time.
+- AMI name (required) spec refers to the name assigned to the ami at creation time. (Using wildcards are allowed)
 - Architecture (optional) accepts the following values (i386 | x86_64)
 - Tag-Key (optional)  refers to the key of a tag assigned to the ami. This filter is independent of the tag-value filter. For example,  if  you  use both  the  filter  "tag-key=Purpose" and the filter "tag-value=X", you get any resources assigned both the tag key  Purpose  (regardless of what the tag's value is), and the tag value X (regardless of what the tag's key is). If you  want  to  list  only  resources
 where Purpose is X, see the tag :key =*value* filter.
