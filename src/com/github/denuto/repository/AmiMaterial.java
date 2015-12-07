@@ -190,21 +190,16 @@ public class AmiMaterial implements GoPlugin {
             @Override
             public GoPluginApiResponse handle(GoPluginApiRequest request) {
                 ValidatePackageConfigurationMessage validatePackageConfigurationMessage = gson.fromJson(request.requestBody(), ValidatePackageConfigurationMessage.class);
-
                 AmazonEC2Client amazonEC2Client = AmazonEC2ClientFactory.newInstance(validatePackageConfigurationMessage.getRepositoryConfiguration().getProperty("REGION").value());
 
                 DescribeImagesRequest describeImagesRequest = new DescribeImagesRequest();
-                String amiSpecName = validatePackageConfigurationMessage.getPackageConfiguration().getProperty("AMI_SPEC").value();
-                String tagKey = validatePackageConfigurationMessage.getPackageConfiguration().getProperty("TAG_KEY").value();
-                String tagValue = validatePackageConfigurationMessage.getPackageConfiguration().getProperty("TAG_VALUE").value();
-                String arch = validatePackageConfigurationMessage.getPackageConfiguration().getProperty("ARCH").value();
+                List<Filter> filters = new ArrayList<>();
+                addPackageConfigToEC2Filter(filters, validatePackageConfigurationMessage.getPackageConfiguration().getProperty("AMI_SPEC"), "name");
+                addPackageConfigToEC2Filter(filters, validatePackageConfigurationMessage.getPackageConfiguration().getProperty("TAG_KEY"), "tag-key");
+                addPackageConfigToEC2Filter(filters, validatePackageConfigurationMessage.getPackageConfiguration().getProperty("TAG_VALUE"), "tag-value");
+                addPackageConfigToEC2Filter(filters, validatePackageConfigurationMessage.getPackageConfiguration().getProperty("ARCH"), "architecture");
 
-                describeImagesRequest.withFilters(
-                        new Filter("name", newArrayList(amiSpecName)),
-                        new Filter("tag-key", newArrayList(tagKey)),
-                        new Filter("tag-value", newArrayList(tagValue)),
-                        new Filter("architecture", newArrayList(arch))
-                );
+                describeImagesRequest.withFilters(filters);
                 if (!amazonEC2Client.describeImages(describeImagesRequest).getImages().isEmpty()) {
                     return success("{\n" +
                             "    \"status\": \"success\",\n" +
@@ -221,6 +216,12 @@ public class AmiMaterial implements GoPlugin {
                         "    ]\n" +
                         "}");
 
+            }
+
+            private void addPackageConfigToEC2Filter(List<Filter> filters, PackageMaterialProperty packageMaterialProperty, String filterKey) {
+                if (packageMaterialProperty != null) {
+                    filters.add(new Filter(filterKey, newArrayList(packageMaterialProperty.value())));
+                }
             }
         };
     }

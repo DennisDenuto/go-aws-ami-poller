@@ -22,9 +22,12 @@ import org.powermock.api.mockito.PowerMockito;
 import org.powermock.core.classloader.annotations.PrepareForTest;
 import org.powermock.modules.junit4.PowerMockRunner;
 
+import java.util.ArrayList;
+
 import static org.hamcrest.CoreMatchers.hasItems;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.core.IsNot.not;
 import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.verify;
 import static org.powermock.api.mockito.PowerMockito.when;
@@ -272,6 +275,38 @@ public class AmiMaterialTest {
         assertExists(goPluginApiResponse.responseBody(), "$.status");
         assertExists(goPluginApiResponse.responseBody(), "$.messages");
         assertJsonValue(goPluginApiResponse.responseBody(), "$.status", "failure");
+    }
+
+    @Test
+    public void shouldGenerateAnEc2DescribeImageRequestsBasedOnlyOnPackageConfigurationPresent() throws Exception {
+        AmazonEC2Client amazonEC2ClientMock = Mockito.mock(AmazonEC2Client.class);
+        when(amazonEC2ClientMock.describeImages(any(DescribeImagesRequest.class))).thenReturn(new DescribeImagesResult().withImages(new Image().withImageId("ami-123456")));
+        ArgumentCaptor<DescribeImagesRequest> argument = ArgumentCaptor.forClass(DescribeImagesRequest.class);
+        PowerMockito.mockStatic(AmazonEC2ClientFactory.class);
+        BDDMockito.given(AmazonEC2ClientFactory.newInstance("us-east-1")).willReturn(amazonEC2ClientMock);
+        DefaultGoPluginApiRequest goPluginApiRequest = new DefaultGoPluginApiRequest("package-repository", "1.0", "check-package-connection");
+        goPluginApiRequest.setRequestBody("" +
+                "{" +
+                "   \"repository-configuration\":{\"REGION\":{\"value\":\"us-east-1\"}}, " +
+                "   \"package-configuration\":" +
+                "   {" +
+                "       \"AMI_SPEC\":{\"value\":\"amispec\"}" +
+                "   }" +
+                "}");
+
+        GoPluginApiResponse goPluginApiResponse = amiMaterial.handle(goPluginApiRequest);
+
+        verify(amazonEC2ClientMock).describeImages(argument.capture());
+        PowerMockito.verifyStatic();
+        assertThat(argument.getValue().getFilters(), not(hasItems(
+                new Filter("tag-key", new ArrayList<String>()),
+                new Filter("tag-value", new ArrayList<String>()),
+                new Filter("architecture", new ArrayList<String>())
+        )));
+        assertThat(goPluginApiResponse.responseCode(), is(200));
+        assertExists(goPluginApiResponse.responseBody(), "$.status");
+        assertExists(goPluginApiResponse.responseBody(), "$.messages");
+        assertJsonValue(goPluginApiResponse.responseBody(), "$.status", "success");
     }
 
     private String buildLongString(int size) {
