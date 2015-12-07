@@ -23,7 +23,6 @@ import org.powermock.modules.junit4.PowerMockRunner;
 
 import java.util.ArrayList;
 
-import static java.time.LocalDateTime.now;
 import static org.hamcrest.CoreMatchers.hasItems;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -372,6 +371,58 @@ public class AmiMaterialTest {
 
         assertThat(goPluginApiResponse.responseCode(), is(200));
         assertThat(goPluginApiResponse.responseBody(), is(""));
+    }
+
+    @Test
+    public void happyCaseGettingLatestRevisionSince() throws Exception {
+        AmazonEC2Client amazonEC2ClientMock = Mockito.mock(AmazonEC2Client.class);
+        when(amazonEC2ClientMock.describeImages(any(DescribeImagesRequest.class))).thenReturn(new DescribeImagesResult().withImages(
+                new Image()
+                        .withImageId("ami-3")
+                        .withName("amispec 3")
+                        .withOwnerId("ownerid1")
+                        .withCreationDate("2015-11-12T18:04:30.000Z"),
+                new Image()
+                        .withImageId("ami-2")
+                        .withName("amispec 2")
+                        .withOwnerId("ownerid1")
+                        .withCreationDate("2015-11-12T18:04:29.000Z"),
+                new Image()
+                        .withImageId("ami-1")
+                        .withName("amispec 1")
+                        .withOwnerId("ownerid1")
+                        .withCreationDate("2015-11-12T18:04:28.000Z")
+        ));
+
+        PowerMockito.mockStatic(AmazonEC2ClientFactory.class);
+        given(AmazonEC2ClientFactory.newInstance("us-east-1")).willReturn(amazonEC2ClientMock);
+
+        DefaultGoPluginApiRequest goPluginApiRequest = new DefaultGoPluginApiRequest("package-repository", "1.0", "latest-revision-since");
+        goPluginApiRequest.setRequestBody("" +
+                "{" +
+                "   \"repository-configuration\":{\"REGION\":{\"value\":\"us-east-1\"}}, " +
+                "   \"package-configuration\":" +
+                "   {" +
+                "       \"AMI_SPEC\":{\"value\":\"amispec\"}" +
+                "   }," +
+                " \"previous-revision\": " +
+                "   {\n" +
+                "        \"revision\": \"ami-1\",\n" +
+                "        \"timestamp\": \"2015-11-12T18:04:28.000Z\",\n" +
+                "        \"data\": {\n" +
+                "        }\n" +
+                "    }" +
+                "}");
+
+        GoPluginApiResponse goPluginApiResponse = amiMaterial.handle(goPluginApiRequest);
+
+        prettyPrint(goPluginApiResponse.responseBody());
+        assertThat(goPluginApiResponse.responseCode(), is(200));
+        assertJsonValue(goPluginApiResponse.responseBody(), "$.revision", "ami-2");
+        assertExists(goPluginApiResponse.responseBody(), "$.timestamp");
+        assertExists(goPluginApiResponse.responseBody(), "$.user");
+        assertExists(goPluginApiResponse.responseBody(), "$.revisionComment");
+        assertExists(goPluginApiResponse.responseBody(), "$.trackbackUrl");
     }
 
     private String buildLongString(int size) {
