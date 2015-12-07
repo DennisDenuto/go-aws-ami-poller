@@ -1,6 +1,10 @@
 package com.github.denuto.repository;
 
 
+import com.amazonaws.services.ec2.AmazonEC2Client;
+import com.amazonaws.services.ec2.model.DryRunResult;
+import com.amazonaws.services.ec2.model.DryRunSupportedRequest;
+import com.github.denuto.repository.services.AmazonEC2ClientFactory;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonObject;
@@ -10,10 +14,20 @@ import com.thoughtworks.go.plugin.api.request.DefaultGoPluginApiRequest;
 import com.thoughtworks.go.plugin.api.response.GoPluginApiResponse;
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.mockito.BDDMockito;
+import org.mockito.Matchers;
+import org.mockito.Mockito;
+import org.powermock.api.mockito.PowerMockito;
+import org.powermock.core.classloader.annotations.PrepareForTest;
+import org.powermock.modules.junit4.PowerMockRunner;
 
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.powermock.api.mockito.PowerMockito.when;
 
+@RunWith(PowerMockRunner.class)
+@PrepareForTest(AmazonEC2ClientFactory.class)
 public class AmiMaterialTest {
 
     private AmiMaterial amiMaterial;
@@ -160,13 +174,38 @@ public class AmiMaterialTest {
 
     @Test
     public void happyCaseCheckingRepositoryConnection() throws Exception {
+        AmazonEC2Client amazonEC2ClientMock = Mockito.mock(AmazonEC2Client.class);
+        when(amazonEC2ClientMock.dryRun(Matchers.any(DryRunSupportedRequest.class))).thenReturn(new DryRunResult(true, null, "", null));
+        PowerMockito.mockStatic(AmazonEC2ClientFactory.class);
+        BDDMockito.given(AmazonEC2ClientFactory.newInstance("us-east-1")).willReturn(amazonEC2ClientMock);
         DefaultGoPluginApiRequest goPluginApiRequest = new DefaultGoPluginApiRequest("package-repository", "1.0", "check-repository-connection");
         goPluginApiRequest.setRequestBody("{\"repository-configuration\":{\"REGION\":{\"value\":\"us-east-1\"}}}");
 
         GoPluginApiResponse goPluginApiResponse = amiMaterial.handle(goPluginApiRequest);
+
+        PowerMockito.verifyStatic();
         assertThat(goPluginApiResponse.responseCode(), is(200));
         assertExists(goPluginApiResponse.responseBody(), "$.status");
         assertExists(goPluginApiResponse.responseBody(), "$.messages");
+        assertJsonValue(goPluginApiResponse.responseBody(), "$.status", "success");
+    }
+
+    @Test
+    public void shouldGenerateFailureIfUnableToConnectToAmazonRegionSpecified() throws Exception {
+        AmazonEC2Client amazonEC2ClientMock = Mockito.mock(AmazonEC2Client.class);
+        when(amazonEC2ClientMock.dryRun(Matchers.any(DryRunSupportedRequest.class))).thenReturn(new DryRunResult(false, null, "some error msg from amazon", null));
+        PowerMockito.mockStatic(AmazonEC2ClientFactory.class);
+        BDDMockito.given(AmazonEC2ClientFactory.newInstance("region-without-permission-to-run-against")).willReturn(amazonEC2ClientMock);
+        DefaultGoPluginApiRequest goPluginApiRequest = new DefaultGoPluginApiRequest("package-repository", "1.0", "check-repository-connection");
+        goPluginApiRequest.setRequestBody("{\"repository-configuration\":{\"REGION\":{\"value\":\"region-without-permission-to-run-against\"}}}");
+
+        GoPluginApiResponse goPluginApiResponse = amiMaterial.handle(goPluginApiRequest);
+
+        PowerMockito.verifyStatic();
+        assertThat(goPluginApiResponse.responseCode(), is(200));
+        assertExists(goPluginApiResponse.responseBody(), "$.status");
+        assertExists(goPluginApiResponse.responseBody(), "$.messages");
+        assertJsonValue(goPluginApiResponse.responseBody(), "$.status", "failure");
     }
 
     private String buildLongString(int size) {

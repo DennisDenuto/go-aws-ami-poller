@@ -1,5 +1,6 @@
 package com.github.denuto.repository;
 
+import com.amazonaws.auth.DefaultAWSCredentialsProviderChain;
 import com.amazonaws.regions.Regions;
 import com.amazonaws.services.ec2.AmazonEC2Client;
 import com.amazonaws.services.ec2.model.DescribeImagesRequest;
@@ -7,6 +8,7 @@ import com.amazonaws.services.ec2.model.DryRunResult;
 import com.github.denuto.repository.models.PackageMaterialProperty;
 import com.github.denuto.repository.models.ValidatePackageConfigurationMessage;
 import com.github.denuto.repository.models.ValidateRepositoryConfigurationMessage;
+import com.github.denuto.repository.services.AmazonEC2ClientFactory;
 import com.google.gson.Gson;
 import com.thoughtworks.go.plugin.api.GoApplicationAccessor;
 import com.thoughtworks.go.plugin.api.GoPlugin;
@@ -160,8 +162,7 @@ public class AmiMaterial implements GoPlugin {
             public GoPluginApiResponse handle(GoPluginApiRequest request) {
                 ValidateRepositoryConfigurationMessage validateRepositoryConfigurationMessage = gson.fromJson(request.requestBody(), ValidateRepositoryConfigurationMessage.class);
 
-                AmazonEC2Client amazonEC2Client = new AmazonEC2Client();
-                amazonEC2Client.withRegion(Regions.fromName(validateRepositoryConfigurationMessage.getRepositoryConfiguration().getProperty("REGION").value()));
+                AmazonEC2Client amazonEC2Client = AmazonEC2ClientFactory.newInstance(validateRepositoryConfigurationMessage.getRepositoryConfiguration().getProperty("REGION").value());
                 DryRunResult<DescribeImagesRequest> describeImagesRequestDryRunResult = amazonEC2Client.dryRun(new DescribeImagesRequest());
 
                 if (describeImagesRequestDryRunResult.isSuccessful()) {
