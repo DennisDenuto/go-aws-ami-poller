@@ -1,10 +1,9 @@
 package com.github.denuto.repository;
 
-import com.amazonaws.auth.DefaultAWSCredentialsProviderChain;
-import com.amazonaws.regions.Regions;
 import com.amazonaws.services.ec2.AmazonEC2Client;
 import com.amazonaws.services.ec2.model.DescribeImagesRequest;
 import com.amazonaws.services.ec2.model.DryRunResult;
+import com.amazonaws.services.ec2.model.Filter;
 import com.github.denuto.repository.models.PackageMaterialProperty;
 import com.github.denuto.repository.models.ValidatePackageConfigurationMessage;
 import com.github.denuto.repository.models.ValidateRepositoryConfigurationMessage;
@@ -24,6 +23,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import static com.google.common.collect.Lists.newArrayList;
 import static com.thoughtworks.go.plugin.api.response.DefaultGoPluginApiResponse.badRequest;
 import static com.thoughtworks.go.plugin.api.response.DefaultGoPluginApiResponse.success;
 import static java.lang.String.format;
@@ -67,6 +67,8 @@ public class AmiMaterial implements GoPlugin {
                 return validatePackageConfiguration().handle(goPluginApiRequest);
             case "check-repository-connection":
                 return checkRepositoryConnection().handle(goPluginApiRequest);
+            case "check-package-connection":
+                return checkPackageConnection().handle(goPluginApiRequest);
             default:
                 logger.error("request name :" + requestName);
                 logger.error(goPluginApiRequest.requestBody());
@@ -78,7 +80,6 @@ public class AmiMaterial implements GoPlugin {
                 return badRequest("unknown for now");
         }
     }
-
 
     private MessageHandler repositoryConfigurationsMessageHandler() {
         return new MessageHandler() {
@@ -94,6 +95,7 @@ public class AmiMaterial implements GoPlugin {
             }
         };
     }
+
 
     public MessageHandler packageConfiguration() {
         return new MessageHandler() {
@@ -179,6 +181,46 @@ public class AmiMaterial implements GoPlugin {
                         "        \"" + describeImagesRequestDryRunResult.getMessage() + "\"\n" +
                         "    ]\n" +
                         "}");
+            }
+        };
+    }
+
+    private MessageHandler checkPackageConnection() {
+        return new MessageHandler() {
+            @Override
+            public GoPluginApiResponse handle(GoPluginApiRequest request) {
+                ValidatePackageConfigurationMessage validatePackageConfigurationMessage = gson.fromJson(request.requestBody(), ValidatePackageConfigurationMessage.class);
+
+                AmazonEC2Client amazonEC2Client = AmazonEC2ClientFactory.newInstance(validatePackageConfigurationMessage.getRepositoryConfiguration().getProperty("REGION").value());
+
+                DescribeImagesRequest describeImagesRequest = new DescribeImagesRequest();
+                String amiSpecName = validatePackageConfigurationMessage.getPackageConfiguration().getProperty("AMI_SPEC").value();
+                String tagKey = validatePackageConfigurationMessage.getPackageConfiguration().getProperty("TAG_KEY").value();
+                String tagValue = validatePackageConfigurationMessage.getPackageConfiguration().getProperty("TAG_VALUE").value();
+                String arch = validatePackageConfigurationMessage.getPackageConfiguration().getProperty("ARCH").value();
+
+                describeImagesRequest.withFilters(
+                        new Filter("name", newArrayList(amiSpecName)),
+                        new Filter("tag-key", newArrayList(tagKey)),
+                        new Filter("tag-value", newArrayList(tagValue)),
+                        new Filter("architecture", newArrayList(arch))
+                );
+                if (!amazonEC2Client.describeImages(describeImagesRequest).getImages().isEmpty()) {
+                    return success("{\n" +
+                            "    \"status\": \"success\",\n" +
+                            "    \"messages\": [\n" +
+                            "        \"Successfully found package\"\n" +
+                            "    ]\n" +
+                            "}");
+                }
+
+                return success("{\n" +
+                        "    \"status\": \"failure\",\n" +
+                        "    \"messages\": [\n" +
+                        "        \"No images found\"\n" +
+                        "    ]\n" +
+                        "}");
+
             }
         };
     }
