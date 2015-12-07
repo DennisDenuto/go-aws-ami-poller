@@ -16,7 +16,6 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.ArgumentCaptor;
-import org.mockito.BDDMockito;
 import org.mockito.Mockito;
 import org.powermock.api.mockito.PowerMockito;
 import org.powermock.core.classloader.annotations.PrepareForTest;
@@ -24,10 +23,12 @@ import org.powermock.modules.junit4.PowerMockRunner;
 
 import java.util.ArrayList;
 
+import static java.time.LocalDateTime.now;
 import static org.hamcrest.CoreMatchers.hasItems;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.IsNot.not;
+import static org.mockito.BDDMockito.given;
 import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.verify;
 import static org.powermock.api.mockito.PowerMockito.when;
@@ -183,7 +184,7 @@ public class AmiMaterialTest {
         AmazonEC2Client amazonEC2ClientMock = Mockito.mock(AmazonEC2Client.class);
         when(amazonEC2ClientMock.dryRun(any(DryRunSupportedRequest.class))).thenReturn(new DryRunResult(true, null, "", null));
         PowerMockito.mockStatic(AmazonEC2ClientFactory.class);
-        BDDMockito.given(AmazonEC2ClientFactory.newInstance("us-east-1")).willReturn(amazonEC2ClientMock);
+        given(AmazonEC2ClientFactory.newInstance("us-east-1")).willReturn(amazonEC2ClientMock);
         DefaultGoPluginApiRequest goPluginApiRequest = new DefaultGoPluginApiRequest("package-repository", "1.0", "check-repository-connection");
         goPluginApiRequest.setRequestBody("{\"repository-configuration\":{\"REGION\":{\"value\":\"us-east-1\"}}}");
 
@@ -201,7 +202,7 @@ public class AmiMaterialTest {
         AmazonEC2Client amazonEC2ClientMock = Mockito.mock(AmazonEC2Client.class);
         when(amazonEC2ClientMock.dryRun(any(DryRunSupportedRequest.class))).thenReturn(new DryRunResult(false, null, "some error msg from amazon", null));
         PowerMockito.mockStatic(AmazonEC2ClientFactory.class);
-        BDDMockito.given(AmazonEC2ClientFactory.newInstance("region-without-permission-to-run-against")).willReturn(amazonEC2ClientMock);
+        given(AmazonEC2ClientFactory.newInstance("region-without-permission-to-run-against")).willReturn(amazonEC2ClientMock);
         DefaultGoPluginApiRequest goPluginApiRequest = new DefaultGoPluginApiRequest("package-repository", "1.0", "check-repository-connection");
         goPluginApiRequest.setRequestBody("{\"repository-configuration\":{\"REGION\":{\"value\":\"region-without-permission-to-run-against\"}}}");
 
@@ -220,7 +221,7 @@ public class AmiMaterialTest {
         when(amazonEC2ClientMock.describeImages(any(DescribeImagesRequest.class))).thenReturn(new DescribeImagesResult().withImages(new Image().withImageId("ami-123456")));
         ArgumentCaptor<DescribeImagesRequest> argument = ArgumentCaptor.forClass(DescribeImagesRequest.class);
         PowerMockito.mockStatic(AmazonEC2ClientFactory.class);
-        BDDMockito.given(AmazonEC2ClientFactory.newInstance("us-east-1")).willReturn(amazonEC2ClientMock);
+        given(AmazonEC2ClientFactory.newInstance("us-east-1")).willReturn(amazonEC2ClientMock);
         DefaultGoPluginApiRequest goPluginApiRequest = new DefaultGoPluginApiRequest("package-repository", "1.0", "check-package-connection");
         goPluginApiRequest.setRequestBody("" +
                 "{" +
@@ -255,7 +256,7 @@ public class AmiMaterialTest {
         AmazonEC2Client amazonEC2ClientMock = Mockito.mock(AmazonEC2Client.class);
         when(amazonEC2ClientMock.describeImages(any(DescribeImagesRequest.class))).thenReturn(new DescribeImagesResult());
         PowerMockito.mockStatic(AmazonEC2ClientFactory.class);
-        BDDMockito.given(AmazonEC2ClientFactory.newInstance("us-east-1")).willReturn(amazonEC2ClientMock);
+        given(AmazonEC2ClientFactory.newInstance("us-east-1")).willReturn(amazonEC2ClientMock);
         DefaultGoPluginApiRequest goPluginApiRequest = new DefaultGoPluginApiRequest("package-repository", "1.0", "check-package-connection");
         goPluginApiRequest.setRequestBody("" +
                 "{" +
@@ -283,7 +284,7 @@ public class AmiMaterialTest {
         when(amazonEC2ClientMock.describeImages(any(DescribeImagesRequest.class))).thenReturn(new DescribeImagesResult().withImages(new Image().withImageId("ami-123456")));
         ArgumentCaptor<DescribeImagesRequest> argument = ArgumentCaptor.forClass(DescribeImagesRequest.class);
         PowerMockito.mockStatic(AmazonEC2ClientFactory.class);
-        BDDMockito.given(AmazonEC2ClientFactory.newInstance("us-east-1")).willReturn(amazonEC2ClientMock);
+        given(AmazonEC2ClientFactory.newInstance("us-east-1")).willReturn(amazonEC2ClientMock);
         DefaultGoPluginApiRequest goPluginApiRequest = new DefaultGoPluginApiRequest("package-repository", "1.0", "check-package-connection");
         goPluginApiRequest.setRequestBody("" +
                 "{" +
@@ -307,6 +308,70 @@ public class AmiMaterialTest {
         assertExists(goPluginApiResponse.responseBody(), "$.status");
         assertExists(goPluginApiResponse.responseBody(), "$.messages");
         assertJsonValue(goPluginApiResponse.responseBody(), "$.status", "success");
+    }
+
+    @Test
+    public void happyCaseGettingLatestRevision() throws Exception {
+        AmazonEC2Client amazonEC2ClientMock = Mockito.mock(AmazonEC2Client.class);
+        when(amazonEC2ClientMock.describeImages(any(DescribeImagesRequest.class))).thenReturn(new DescribeImagesResult().withImages(
+                new Image()
+                        .withImageId("ami-2")
+                        .withName("amispec 2")
+                        .withOwnerId("ownerid1")
+                        .withCreationDate("2015-11-12T18:04:29.000Z"),
+                new Image()
+                        .withImageId("ami-1")
+                        .withName("amispec 1")
+                        .withOwnerId("ownerid1")
+                        .withCreationDate("2015-11-12T18:04:28.000Z")
+        ));
+
+        PowerMockito.mockStatic(AmazonEC2ClientFactory.class);
+        given(AmazonEC2ClientFactory.newInstance("us-east-1")).willReturn(amazonEC2ClientMock);
+
+        DefaultGoPluginApiRequest goPluginApiRequest = new DefaultGoPluginApiRequest("package-repository", "1.0", "latest-revision");
+        goPluginApiRequest.setRequestBody("" +
+                "{" +
+                "   \"repository-configuration\":{\"REGION\":{\"value\":\"us-east-1\"}}, " +
+                "   \"package-configuration\":" +
+                "   {" +
+                "       \"AMI_SPEC\":{\"value\":\"amispec\"}" +
+                "   }" +
+                "}");
+
+        GoPluginApiResponse goPluginApiResponse = amiMaterial.handle(goPluginApiRequest);
+
+        prettyPrint(goPluginApiResponse.responseBody());
+        assertThat(goPluginApiResponse.responseCode(), is(200));
+        assertJsonValue(goPluginApiResponse.responseBody(), "$.revision", "ami-2");
+        assertExists(goPluginApiResponse.responseBody(), "$.timestamp");
+        assertExists(goPluginApiResponse.responseBody(), "$.user");
+        assertExists(goPluginApiResponse.responseBody(), "$.revisionComment");
+        assertExists(goPluginApiResponse.responseBody(), "$.trackbackUrl");
+    }
+
+    @Test
+    public void shouldGenerateEmptyResponseToIndicateCouldNotFindPackageWhenGettingLatestPackageAndCannotFindPackage() throws Exception {
+        AmazonEC2Client amazonEC2ClientMock = Mockito.mock(AmazonEC2Client.class);
+        when(amazonEC2ClientMock.describeImages(any(DescribeImagesRequest.class))).thenReturn(new DescribeImagesResult().withImages());
+
+        PowerMockito.mockStatic(AmazonEC2ClientFactory.class);
+        given(AmazonEC2ClientFactory.newInstance("us-east-1")).willReturn(amazonEC2ClientMock);
+
+        DefaultGoPluginApiRequest goPluginApiRequest = new DefaultGoPluginApiRequest("package-repository", "1.0", "latest-revision");
+        goPluginApiRequest.setRequestBody("" +
+                "{" +
+                "   \"repository-configuration\":{\"REGION\":{\"value\":\"us-east-1\"}}, " +
+                "   \"package-configuration\":" +
+                "   {" +
+                "       \"AMI_SPEC\":{\"value\":\"amispec\"}" +
+                "   }" +
+                "}");
+
+        GoPluginApiResponse goPluginApiResponse = amiMaterial.handle(goPluginApiRequest);
+
+        assertThat(goPluginApiResponse.responseCode(), is(200));
+        assertThat(goPluginApiResponse.responseBody(), is(""));
     }
 
     private String buildLongString(int size) {
@@ -335,5 +400,4 @@ public class AmiMaterialTest {
         Gson gson = new GsonBuilder().setPrettyPrinting().create();
         System.out.println(gson.toJson(json));
     }
-
 }

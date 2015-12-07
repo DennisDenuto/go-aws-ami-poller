@@ -4,10 +4,12 @@ import com.amazonaws.services.ec2.AmazonEC2Client;
 import com.amazonaws.services.ec2.model.DescribeImagesRequest;
 import com.amazonaws.services.ec2.model.DryRunResult;
 import com.amazonaws.services.ec2.model.Filter;
+import com.amazonaws.services.ec2.model.Image;
 import com.github.denuto.repository.models.PackageMaterialProperty;
 import com.github.denuto.repository.models.ValidatePackageConfigurationMessage;
 import com.github.denuto.repository.models.ValidateRepositoryConfigurationMessage;
 import com.github.denuto.repository.services.AmazonEC2ClientFactory;
+import com.google.common.collect.Iterables;
 import com.google.gson.Gson;
 import com.thoughtworks.go.plugin.api.GoApplicationAccessor;
 import com.thoughtworks.go.plugin.api.GoPlugin;
@@ -18,10 +20,7 @@ import com.thoughtworks.go.plugin.api.logging.Logger;
 import com.thoughtworks.go.plugin.api.request.GoPluginApiRequest;
 import com.thoughtworks.go.plugin.api.response.GoPluginApiResponse;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 import static com.google.common.collect.Lists.newArrayList;
 import static com.thoughtworks.go.plugin.api.response.DefaultGoPluginApiResponse.badRequest;
@@ -69,6 +68,8 @@ public class AmiMaterial implements GoPlugin {
                 return checkRepositoryConnection().handle(goPluginApiRequest);
             case "check-package-connection":
                 return checkPackageConnection().handle(goPluginApiRequest);
+            case "latest-revision":
+                return latestRevision().handle(goPluginApiRequest);
             default:
                 logger.error("request name :" + requestName);
                 logger.error(goPluginApiRequest.requestBody());
@@ -96,7 +97,6 @@ public class AmiMaterial implements GoPlugin {
         };
     }
 
-
     public MessageHandler packageConfiguration() {
         return new MessageHandler() {
             @Override
@@ -119,6 +119,7 @@ public class AmiMaterial implements GoPlugin {
             }
         };
     }
+
 
     private MessageHandler validateRepositoryConfiguration() {
         return new MessageHandler() {
@@ -192,14 +193,7 @@ public class AmiMaterial implements GoPlugin {
                 ValidatePackageConfigurationMessage validatePackageConfigurationMessage = gson.fromJson(request.requestBody(), ValidatePackageConfigurationMessage.class);
                 AmazonEC2Client amazonEC2Client = AmazonEC2ClientFactory.newInstance(validatePackageConfigurationMessage.getRepositoryConfiguration().getProperty("REGION").value());
 
-                DescribeImagesRequest describeImagesRequest = new DescribeImagesRequest();
-                List<Filter> filters = new ArrayList<>();
-                addPackageConfigToEC2Filter(filters, validatePackageConfigurationMessage.getPackageConfiguration().getProperty("AMI_SPEC"), "name");
-                addPackageConfigToEC2Filter(filters, validatePackageConfigurationMessage.getPackageConfiguration().getProperty("TAG_KEY"), "tag-key");
-                addPackageConfigToEC2Filter(filters, validatePackageConfigurationMessage.getPackageConfiguration().getProperty("TAG_VALUE"), "tag-value");
-                addPackageConfigToEC2Filter(filters, validatePackageConfigurationMessage.getPackageConfiguration().getProperty("ARCH"), "architecture");
-
-                describeImagesRequest.withFilters(filters);
+                DescribeImagesRequest describeImagesRequest = buildDescribeImageRequestFromPackageConfiguration(validatePackageConfigurationMessage);
                 if (!amazonEC2Client.describeImages(describeImagesRequest).getImages().isEmpty()) {
                     return success("{\n" +
                             "    \"status\": \"success\",\n" +
@@ -215,15 +209,62 @@ public class AmiMaterial implements GoPlugin {
                         "        \"No images found\"\n" +
                         "    ]\n" +
                         "}");
-
             }
 
-            private void addPackageConfigToEC2Filter(List<Filter> filters, PackageMaterialProperty packageMaterialProperty, String filterKey) {
-                if (packageMaterialProperty != null) {
-                    filters.add(new Filter(filterKey, newArrayList(packageMaterialProperty.value())));
+
+        };
+    }
+
+    private MessageHandler latestRevision() {
+        return new MessageHandler() {
+            @Override
+            public GoPluginApiResponse handle(GoPluginApiRequest request) {
+                ValidatePackageConfigurationMessage validatePackageConfigurationMessage = gson.fromJson(request.requestBody(), ValidatePackageConfigurationMessage.class);
+                AmazonEC2Client amazonEC2Client = AmazonEC2ClientFactory.newInstance(validatePackageConfigurationMessage.getRepositoryConfiguration().getProperty("REGION").value());
+
+                List<Image> images = amazonEC2Client.describeImages(buildDescribeImageRequestFromPackageConfiguration(validatePackageConfigurationMessage)).getImages();
+                images.sort(new Comparator<Image>() {
+                    @Override
+                    public int compare(Image o1, Image o2) {
+                        return o2.getCreationDate().compareTo(o1.getCreationDate());
+                    }
+                });
+
+                Image latestImage = Iterables.getFirst(images, null);
+                if (latestImage != null) {
+                    return success(String.format("{\n" +
+                            "    \"revision\": \"%s\",\n" +
+                            "    \"timestamp\": \"%s\",\n" +
+                            "    \"user\": \"%s\",\n" +
+                            "    \"revisionComment\": \"%s\",\n" +
+                            "    \"trackbackUrl\": \"%s\",\n" +
+                            "    \"data\": {\n" +
+                            "    }\n" +
+                            "}", latestImage.getImageId(), latestImage.getCreationDate(), latestImage.getOwnerId(), latestImage.getDescription(), ""));
                 }
+
+                return success("");
             }
         };
+    }
+
+    private DescribeImagesRequest buildDescribeImageRequestFromPackageConfiguration(ValidatePackageConfigurationMessage validatePackageConfigurationMessage) {
+        DescribeImagesRequest describeImagesRequest = new DescribeImagesRequest();
+        List<Filter> filters = new ArrayList<>();
+        filters.add(new Filter("state", newArrayList("available")));
+        addPackageConfigToEC2Filter(filters, validatePackageConfigurationMessage.getPackageConfiguration().getProperty("AMI_SPEC"), "name");
+        addPackageConfigToEC2Filter(filters, validatePackageConfigurationMessage.getPackageConfiguration().getProperty("TAG_KEY"), "tag-key");
+        addPackageConfigToEC2Filter(filters, validatePackageConfigurationMessage.getPackageConfiguration().getProperty("TAG_VALUE"), "tag-value");
+        addPackageConfigToEC2Filter(filters, validatePackageConfigurationMessage.getPackageConfiguration().getProperty("ARCH"), "architecture");
+
+        describeImagesRequest.withFilters(filters);
+        return describeImagesRequest;
+    }
+
+    private void addPackageConfigToEC2Filter(List<Filter> filters, PackageMaterialProperty packageMaterialProperty, String filterKey) {
+        if (packageMaterialProperty != null) {
+            filters.add(new Filter(filterKey, newArrayList(packageMaterialProperty.value())));
+        }
     }
 
     @Override
