@@ -38,30 +38,58 @@
           <span class="credits right">Hosted on GitHub Pages &mdash; Theme by <a href="https://twitter.com/michigangraham">mattgraham</a></span>
         </div>
 
-        <h3>
-<a id="welcome-to-github-pages" class="anchor" href="#welcome-to-github-pages" aria-hidden="true"><span class="octicon octicon-link"></span></a>Welcome to GitHub Pages.</h3>
+        <p><a href="https://travis-ci.org/DennisDenuto/go-aws-ami-poller"><img src="https://travis-ci.org/DennisDenuto/go-aws-ami-poller.svg" alt="Build Status"></a></p>
 
-<p>This automatic page generator is the easiest way to create beautiful pages for all of your projects. Author your page content here <a href="https://guides.github.com/features/mastering-markdown/">using GitHub Flavored Markdown</a>, select a template crafted by a designer, and publish. After your page is generated, you can check out the new <code>gh-pages</code> branch locally. If you’re using GitHub Desktop, simply sync your repository and you’ll see the new branch.</p>
+<h1>
+<a id="aws-ami-poller-plugin-for-go" class="anchor" href="#aws-ami-poller-plugin-for-go" aria-hidden="true"><span class="octicon octicon-link"></span></a>AWS AMI Poller Plugin for Go</h1>
 
-<h3>
-<a id="designer-templates" class="anchor" href="#designer-templates" aria-hidden="true"><span class="octicon octicon-link"></span></a>Designer Templates</h3>
+<h2>
+<a id="introduction" class="anchor" href="#introduction" aria-hidden="true"><span class="octicon octicon-link"></span></a>Introduction</h2>
 
-<p>We’ve crafted some handsome templates for you to use. Go ahead and click 'Continue to layouts' to browse through them. You can easily go back to edit your page before publishing. After publishing your page, you can revisit the page generator and switch to another theme. Your Page content will be preserved.</p>
+<p>This is a <a href="http://www.thoughtworks.com/products/docs/go/13.3/help/package_material.html">package material</a> plugin for <a href="http://www.thoughtworks.com/products/go-continuous-delivery">Go</a>. It is currently capable of polling <a href="http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/AMIs.html/">AWS AMI</a> for a specific region.</p>
 
-<h3>
-<a id="creating-pages-manually" class="anchor" href="#creating-pages-manually" aria-hidden="true"><span class="octicon octicon-link"></span></a>Creating pages manually</h3>
+<p>The behaviour and capabilities of the plugin is determined to a significant extent by that of the package material extension point in Go. Be sure to read the package material documentation before using this plugin.</p>
 
-<p>If you prefer to not use the automatic generator, push a branch named <code>gh-pages</code> to your repository to create a page manually. In addition to supporting regular HTML content, GitHub Pages support Jekyll, a simple, blog aware static site generator. Jekyll makes it easy to create site-wide headers and footers without having to copy them across every page. It also offers intelligent blog support and other advanced templating features.</p>
+<h2>
+<a id="installation" class="anchor" href="#installation" aria-hidden="true"><span class="octicon octicon-link"></span></a>Installation</h2>
 
-<h3>
-<a id="authors-and-contributors" class="anchor" href="#authors-and-contributors" aria-hidden="true"><span class="octicon octicon-link"></span></a>Authors and Contributors</h3>
+<p>Just drop aws-ami-poller.jar into plugins/external directory and restart Go. More details <a href="http://www.thoughtworks.com/products/docs/go/13.3/help/plugin_user_guide.html">here</a></p>
 
-<p>You can <a href="https://github.com/blog/821" class="user-mention">@mention</a> a GitHub username to generate a link to their profile. The resulting <code>&lt;a&gt;</code> element will link to the contributor’s GitHub Profile. For example: In 2007, Chris Wanstrath (<a href="https://github.com/defunkt" class="user-mention">@defunkt</a>), PJ Hyett (<a href="https://github.com/pjhyett" class="user-mention">@pjhyett</a>), and Tom Preston-Werner (<a href="https://github.com/mojombo" class="user-mention">@mojombo</a>) founded GitHub.</p>
+<h2>
+<a id="repository-definition" class="anchor" href="#repository-definition" aria-hidden="true"><span class="octicon octicon-link"></span></a>Repository definition</h2>
 
-<h3>
-<a id="support-or-contact" class="anchor" href="#support-or-contact" aria-hidden="true"><span class="octicon octicon-link"></span></a>Support or Contact</h3>
+<p>The AWS region must be a <a href="http://docs.aws.amazon.com/general/latest/gr/rande.html#ec2_region">valid region</a>.</p>
 
-<p>Having trouble with Pages? Check out our <a href="https://help.github.com/pages">documentation</a> or <a href="https://github.com/contact">contact support</a> and we’ll help you sort it out.</p>
+<h2>
+<a id="package-definition" class="anchor" href="#package-definition" aria-hidden="true"><span class="octicon octicon-link"></span></a>Package definition</h2>
+
+<ul>
+<li>AMI name (required) spec refers to the name assigned to the ami at creation time. (Using wildcards are allowed)</li>
+<li>Architecture (optional) accepts the following values (i386 | x86_64)</li>
+<li>Tag-Key (optional)  refers to the key of a tag assigned to the ami. This filter is independent of the tag-value filter. For example,  if  you  use both  the  filter  "tag-key=Purpose" and the filter "tag-value=X", you get any resources assigned both the tag key  Purpose  (regardless of what the tag's value is), and the tag value X (regardless of what the tag's key is). If you  want  to  list  only  resources
+where Purpose is X, see the tag :key =<em>value</em> filter.</li>
+<li>Tag-Value (optional) refers to the value of a tag assigned to the resource. This filter is independent of the tag-key filter.</li>
+</ul>
+
+<h2>
+<a id="published-environment-variables" class="anchor" href="#published-environment-variables" aria-hidden="true"><span class="octicon octicon-link"></span></a>Published Environment Variables</h2>
+
+<p>The following information is made available as environment variables for tasks:</p>
+
+<pre><code>GO_PACKAGE_&lt;REPO-NAME&gt;_&lt;PACKAGE-NAME&gt;_LABEL (AMI id)
+GO_REPO_&lt;REPO-NAME&gt;_&lt;PACKAGE-NAME&gt;_REGION (Region AMI belongs to)
+</code></pre>
+
+<h2>
+<a id="logging" class="anchor" href="#logging" aria-hidden="true"><span class="octicon octicon-link"></span></a>Logging</h2>
+
+<p>The default logging level for the plugin is set to INFO.
+You can override default value by setting system property 'plugin.pluginId_placeholder.log.level' to required logging level. For example, to set the logging level to WARN for plugin with id 'ami-poller', system property 'plugin.ami-poller.log.level' should be set to WARN.</p>
+
+<h2>
+<a id="notes" class="anchor" href="#notes" aria-hidden="true"><span class="octicon octicon-link"></span></a>Notes</h2>
+
+<p>This plugin will detect at max one package revision per minute (the default interval at which Go materials poll). If multiple versions of a package get published to a repo in the time interval between two polls, Go will register the next sequential (by creationdate) version in that interval.</p>
       </section>
 
     </div>
