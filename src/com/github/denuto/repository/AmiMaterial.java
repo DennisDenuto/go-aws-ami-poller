@@ -1,10 +1,7 @@
 package com.github.denuto.repository;
 
 import com.amazonaws.services.ec2.AmazonEC2Client;
-import com.amazonaws.services.ec2.model.DescribeImagesRequest;
-import com.amazonaws.services.ec2.model.DryRunResult;
-import com.amazonaws.services.ec2.model.Filter;
-import com.amazonaws.services.ec2.model.Image;
+import com.amazonaws.services.ec2.model.*;
 import com.fatboyindustrial.gsonjodatime.Converters;
 import com.github.denuto.repository.models.*;
 import com.github.denuto.repository.services.AmazonEC2ClientFactory;
@@ -62,6 +59,7 @@ public class AmiMaterial implements GoPlugin {
         add("us-west-1");
         add("us-west-2");
     }};
+    public static final Tag EMPTY_TAG = new Tag("", "");
 
     @Override
     public void initializeGoApplicationAccessor(GoApplicationAccessor goApplicationAccessor) {
@@ -246,18 +244,39 @@ public class AmiMaterial implements GoPlugin {
 
                 Image latestImage = Iterables.getFirst(images, null);
                 if (latestImage != null) {
+                    Tag pipelineName = Iterables.getFirst(Iterables.filter(latestImage.getTags(), getTagByKeyName("pipelineName")), EMPTY_TAG);
+                    Tag pipelineCounter = Iterables.getFirst(Iterables.filter(latestImage.getTags(), getTagByKeyName("pipelineCounter")), EMPTY_TAG);
+                    Tag stageName = Iterables.getFirst(Iterables.filter(latestImage.getTags(), getTagByKeyName("stageName")), EMPTY_TAG);
+                    Tag stageCounter = Iterables.getFirst(Iterables.filter(latestImage.getTags(), getTagByKeyName("stageCounter")), EMPTY_TAG);
+                    Tag jobName = Iterables.getFirst(Iterables.filter(latestImage.getTags(), getTagByKeyName("jobName")), EMPTY_TAG);
+
+
                     return success(String.format("{\n" +
-                            "    \"revision\": \"%s\",\n" +
-                            "    \"timestamp\": \"%s\",\n" +
-                            "    \"user\": \"%s\",\n" +
-                            "    \"revisionComment\": \"%s\",\n" +
-                            "    \"trackbackUrl\": \"%s\",\n" +
-                            "    \"data\": {\n" +
-                            "    }\n" +
-                            "}", latestImage.getImageId(), latestImage.getCreationDate(), latestImage.getOwnerId(), latestImage.getDescription(), ""));
+                                    "    \"revision\": \"%s\",\n" +
+                                    "    \"timestamp\": \"%s\",\n" +
+                                    "    \"user\": \"%s\",\n" +
+                                    "    \"revisionComment\": \"%s\",\n" +
+                                    "    \"trackbackUrl\": \"%s\",\n" +
+                                    "    \"data\": {\n" +
+                                    "    }\n" +
+                                    "}",
+                            latestImage.getImageId(),
+                            latestImage.getCreationDate(),
+                            latestImage.getOwnerId(),
+                            latestImage.getDescription(),
+                            "http://go-server:8153/go/tab/build/detail/" + pipelineName.getValue() + "/" + pipelineCounter.getValue() + "/" + stageName.getValue() + "/" + stageCounter.getValue() + "/" + jobName.getValue()));
                 }
 
                 return success("");
+            }
+
+            private Predicate<Tag> getTagByKeyName(final String tagKeyName) {
+                return new Predicate<Tag>() {
+                    @Override
+                    public boolean apply(Tag input) {
+                        return input.getKey().equals(tagKeyName);
+                    }
+                };
             }
         };
     }
