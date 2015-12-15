@@ -270,14 +270,7 @@ public class AmiMaterial implements GoPlugin {
                 return success("");
             }
 
-            private Predicate<Tag> getTagByKeyName(final String tagKeyName) {
-                return new Predicate<Tag>() {
-                    @Override
-                    public boolean apply(Tag input) {
-                        return input.getKey().equals(tagKeyName);
-                    }
-                };
-            }
+
         };
     }
 
@@ -300,6 +293,12 @@ public class AmiMaterial implements GoPlugin {
                         }), null);
 
                 if (latestImage != null) {
+                    Tag pipelineName = Iterables.getFirst(Iterables.filter(latestImage.getTags(), getTagByKeyName("pipelineName")), EMPTY_TAG);
+                    Tag pipelineCounter = Iterables.getFirst(Iterables.filter(latestImage.getTags(), getTagByKeyName("pipelineCounter")), EMPTY_TAG);
+                    Tag stageName = Iterables.getFirst(Iterables.filter(latestImage.getTags(), getTagByKeyName("stageName")), EMPTY_TAG);
+                    Tag stageCounter = Iterables.getFirst(Iterables.filter(latestImage.getTags(), getTagByKeyName("stageCounter")), EMPTY_TAG);
+                    Tag jobName = Iterables.getFirst(Iterables.filter(latestImage.getTags(), getTagByKeyName("jobName")), EMPTY_TAG);
+
                     return success(String.format("{\n" +
                             "    \"revision\": \"%s\",\n" +
                             "    \"timestamp\": \"%s\",\n" +
@@ -308,11 +307,25 @@ public class AmiMaterial implements GoPlugin {
                             "    \"trackbackUrl\": \"%s\",\n" +
                             "    \"data\": {\n" +
                             "    }\n" +
-                            "}", latestImage.getImageId(), latestImage.getCreationDate(), latestImage.getOwnerId(), latestImage.getDescription(), ""));
+                            "}",
+                            latestImage.getImageId(),
+                            latestImage.getCreationDate(),
+                            latestImage.getOwnerId(),
+                            latestImage.getDescription(),
+                            "http://go-server:8153/go/tab/build/detail/" + pipelineName.getValue() + "/" + pipelineCounter.getValue() + "/" + stageName.getValue() + "/" + stageCounter.getValue() + "/" + jobName.getValue()));
                 }
 
                 return success("");
 
+            }
+        };
+    }
+
+    private Predicate<Tag> getTagByKeyName(final String tagKeyName) {
+        return new Predicate<Tag>() {
+            @Override
+            public boolean apply(Tag input) {
+                return input.getKey().equals(tagKeyName);
             }
         };
     }
